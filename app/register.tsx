@@ -1,18 +1,20 @@
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { Picker } from "@react-native-picker/picker";
+import { useRouter } from "expo-router";
+import type { Auth } from "firebase/auth";
+import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
 import React, { useState } from "react";
 import {
-  View,
+  Alert,
+  Platform,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
-  Alert,
-  Platform,
+  View,
 } from "react-native";
-import { useRouter } from "expo-router";
-import { Picker } from "@react-native-picker/picker";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import { signInWithPhoneNumber, RecaptchaVerifier } from "firebase/auth";
-import { auth } from "../app/firebaseConfig";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { auth } from "../config/firebaseConfig";
 
 // Extend the Window interface to include recaptchaVerifier
 declare global {
@@ -20,8 +22,7 @@ declare global {
     recaptchaVerifier?: RecaptchaVerifier;
   }
 }
-
-export default function RegisterPage() {
+function RegisterPage() {
   const router = useRouter();
 
   const [form, setForm] = useState({
@@ -36,7 +37,7 @@ export default function RegisterPage() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
-  const handleChange = (field, value) => {
+  const handleChange = (field: keyof typeof form, value: any) => {
     setForm({ ...form, [field]: value });
   };
 
@@ -59,20 +60,28 @@ export default function RegisterPage() {
 
   const setupRecaptcha = () => {
     if (Platform.OS === "web" && !window.recaptchaVerifier) {
+      debugger;
+      const recaptchaContainer = document.getElementById("recaptcha-container");
+      if (!recaptchaContainer) {
+        console.error("ReCAPTCHA container element not found.");
+        return;
+      }
       window.recaptchaVerifier = new RecaptchaVerifier(
-        "recaptcha-container",
+        auth as Auth, // ✅ Auth object as first argument
+        "recaptcha-container", // ✅ Element ID as second argument
         {
           size: "invisible",
-          callback: (response) => {
+          callback: (response: any) => {
             console.log("Recaptcha solved:", response);
           },
-        },
-        auth
+        }
       );
     }
   };
 
+
   const handleSendOtp = async () => {
+    debugger;
     if (!validate()) return;
     setIsSending(true);
 
@@ -105,7 +114,7 @@ export default function RegisterPage() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {Platform.OS === "web" && <div id="recaptcha-container" />} {/* Required for Web */}
 
       <Text style={styles.title}>Register for Amarnath Yatra {currentYear}</Text>
@@ -131,37 +140,36 @@ export default function RegisterPage() {
       </View>
 
       <TouchableOpacity onPress={() => setShowDatePicker(true)}>
-  <TextInput
-    style={styles.input}
-    placeholder="Date of Birth"
-    value={form.dob.toDateString()}
-    editable={false}
-  />
-</TouchableOpacity>
+        <TextInput
+          style={styles.input}
+          placeholder="Date of Birth"
+          value={form.dob.toDateString()}
+          editable={false}
+        />
+      </TouchableOpacity>
 
-{showDatePicker && (
-  Platform.OS === "web" ? (
-    <input
-      type="date"
-      onChange={(e) => {
-        setShowDatePicker(false);
-        handleChange("dob", new Date(e.target.value));
-      }}
-      style={{ marginBottom: 12, fontSize: 16, padding: 12 }}
-    />
-  ) : (
-    <DateTimePicker
-      value={form.dob}
-      mode="date"
-      display="default"
-      onChange={(event, selectedDate) => {
-        setShowDatePicker(false);
-        if (selectedDate) handleChange("dob", selectedDate);
-      }}
-    />
-  )
-)}
-
+      {showDatePicker && (
+        Platform.OS === "web" ? (
+          <input
+            type="date"
+            onChange={(e) => {
+              setShowDatePicker(false);
+              handleChange("dob", new Date(e.target.value));
+            }}
+            style={{ marginBottom: 12, fontSize: 16, padding: 12 }}
+          />
+        ) : (
+          <DateTimePicker
+            value={form.dob}
+            mode="date"
+            display="default"
+            onChange={(event, selectedDate) => {
+              setShowDatePicker(false);
+              if (selectedDate) handleChange("dob", selectedDate);
+            }}
+          />
+        )
+      )}
 
       <TextInput
         style={styles.input}
@@ -197,14 +205,13 @@ export default function RegisterPage() {
           {isSending ? "Sending OTP..." : "Send OTP"}
         </Text>
       </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     padding: 20,
-    marginTop: 40,
     backgroundColor: "#f8f9fa",
     flex: 1,
   },
@@ -235,7 +242,6 @@ const styles = StyleSheet.create({
   picker: {
     height: 50,
     color: "#333",
-    paddingHorizontal: 10,
   },
   button: {
     backgroundColor: "#003366",
@@ -250,3 +256,5 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 });
+
+export default RegisterPage;

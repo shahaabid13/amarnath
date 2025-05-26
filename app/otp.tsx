@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { auth } from "../app/firebaseConfig";
+import { auth } from "../config/firebaseConfig";
 
 export default function OtpPage() {
   const router = useRouter();
